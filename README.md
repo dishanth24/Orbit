@@ -15,6 +15,8 @@
 
 ---
 
+demo mvp link - https://orbit-one-ashy.vercel.app/
+
 ## 🌌 Overview
 
 Modern smartphones, smartwatches, and fitness trackers collect enormous amounts of personal health data. However, this information is scattered across different applications, making it difficult for individuals to understand their health patterns.
