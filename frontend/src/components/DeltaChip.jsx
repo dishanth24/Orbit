@@ -3,6 +3,9 @@ import React from 'react'
 export default function DeltaChip({ value, suffix = '%' }) {
   if (value === null || value === undefined || isNaN(value)) return null
   const positive = value >= 0
+  const abs = Math.abs(value)
+  // Show integer when whole number, otherwise 1 decimal
+  const formatted = Number.isInteger(abs) ? abs.toString() : abs.toFixed(1)
   return (
     <span
       className="delta-chip"
@@ -19,7 +22,7 @@ export default function DeltaChip({ value, suffix = '%' }) {
         fontVariantNumeric: 'tabular-nums',
       }}
     >
-      {positive ? '▲' : '▼'} {Math.abs(value).toFixed(1)}{suffix}
+      {positive ? '▲' : '▼'} {formatted}{suffix}
     </span>
   )
 }

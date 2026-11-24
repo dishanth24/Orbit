@@ -27,6 +27,11 @@
   --mood: #F5A524;
   --water: #38A9F2;
 
+  /* Accent – vibrant violet for interactive highlights */
+  --accent: #7C3AED;
+  --accent-tint: #EDE9FE;
+  --accent-2: #A78BFA;
+
   /* Transitions */
   --transition: 300ms ease;
 
@@ -41,4 +46,6 @@
   --text: #E6F2F0;
   --muted: #8BADA9;
   --brand-tint: rgba(13,124,107,0.25);
+  --accent: #A78BFA;
+  --accent-tint: rgba(124,58,237,0.18);
 }

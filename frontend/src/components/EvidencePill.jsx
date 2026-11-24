@@ -35,7 +35,7 @@ export default function EvidencePill({ metric, value, label }) {
         fontVariantNumeric: 'tabular-nums',
       }}
     >
-      {value !== undefined && <strong>{value}</strong>}
+      {value !== undefined && <strong>{typeof value === 'number' ? value.toLocaleString() : value}</strong>}
       {label && <span style={{ fontWeight: 500 }}>{label}</span>}
     </span>
   )

@@ -644,7 +644,65 @@ body {
 /* ==================== FOCUS ==================== */
 
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--accent, var(--brand));
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* ==================== ACCENT INTERACTIVE OVERRIDES ==================== */
+
+/* Suggestion chips & metric filter chips — accent on hover/active */
+.suggestion-chip:hover,
+.chip.active,
+.chip-active {
+  background: var(--accent-tint) !important;
+  color: var(--accent) !important;
+  border-color: rgba(124,58,237,0.22) !important;
+}
+
+/* Segmented control active tab — defined in components.css */
+/* Metric toggle chips in Trends/Insights: accent ring when active */
+.metric-toggle-btn.active,
+.metric-chip-btn.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Bottom tab active icon tint */
+.bottom-tab.active svg {
+  filter: drop-shadow(0 0 4px var(--accent-2));
+}
+
+/* Score ring hover glow — pulse in accent */
+.score-ring-wrap:hover .score-svg circle.score-track {
+  stroke: var(--accent-2);
+}
+
+/* Primary button — gradient + accent glow on focus */
+.btn-primary:focus-visible {
+  outline-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+
+/* View-all links: accent hover */
+.view-all-link:hover {
+  color: var(--accent);
+}
+
+/* Active sidebar nav item left-accent bar: accent colour */
+.sidebar-nav-item.active::before {
+  background: var(--accent);
+}
+
+/* Follow-up chips hover — accent */
+.followup-chip:hover {
+  background: var(--accent-tint);
+  color: var(--accent);
+  border-color: rgba(124,58,237,0.20);
+}
+
+/* Toast info: accent tint */
+.toast-info {
+  border-left-color: var(--accent);
+}
+

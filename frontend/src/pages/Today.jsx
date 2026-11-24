@@ -155,8 +155,8 @@ function OrbitHero({ insightsData, records, onRefresh }) {
                 className="orb-carrier"
                 style={{
                   '--start-angle': `${initialAngle}deg`,
-                  '--carrier-radius-x': '155px',
-                  '--carrier-radius-y': '115px',
+                  '--carrier-radius-x': '130px',
+                  '--carrier-radius-y': '95px',
                 }}
               >
                 <div
@@ -394,8 +394,9 @@ export default function Today() {
   }
 
   // Pre-calculate 7-day chart data
+  // records[0] = newest (API returns DESC). Charts must show oldest→newest (left→right).
   const last7Records = useMemo(() => {
-    return [...records].slice(-7).reverse()
+    return records.slice(0, 7).reverse() // oldest first → correct chart direction
   }, [records])
 
   const stepsChartData = useMemo(() => {
@@ -418,23 +419,36 @@ export default function Today() {
     })
   }, [last7Records])
 
-  // Sparkline data for each metric (7 data points)
+  // Sparkline data for each metric (7 data points, oldest→newest)
   const stepsSpark = useMemo(() => last7Records.map((r) => ({ value: r.steps ?? 0 })), [last7Records])
   const sleepSpark = useMemo(() => last7Records.map((r) => ({ value: r.sleep_h ?? 0 })), [last7Records])
   const heartSpark = useMemo(() => last7Records.map((r) => ({ value: r.rhr ?? 65 })), [last7Records])
-  const moodSpark = useMemo(() => last7Records.map((r) => ({ value: r.mood ?? 3 })), [last7Records])
+  const moodSpark  = useMemo(() => last7Records.map((r) => ({ value: r.mood ?? 3 })), [last7Records])
   const waterSpark = useMemo(() => last7Records.map((r) => ({ value: r.water_l ?? 0 })), [last7Records])
 
-  // Latest daily values & deltas
-  const latest = records[0] || {}
-  const prev7AvgSteps = useMemo(() => {
-    const p7 = records.slice(7, 14).map((r) => r.steps).filter(Boolean)
-    return p7.length ? p7.reduce((a, b) => a + b, 0) / p7.length : latest.steps
-  }, [records, latest])
+  // 7-day averages for stat cards — consistent with insights engine
+  function avg(arr, key) {
+    const vals = arr.map(r => r[key]).filter(v => v != null && !isNaN(v))
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+  }
+  function deltaPct(curr, prev) {
+    if (!prev) return 0
+    const d = Math.round(((curr - prev) / prev) * 100)
+    return isFinite(d) ? d : 0
+  }
 
-  const stepsDeltaPct = prev7AvgSteps
-    ? Math.round((((latest.steps || 0) - prev7AvgSteps) / prev7AvgSteps) * 100)
-    : 0
+  const avg7Steps  = avg(records.slice(0, 7), 'steps')
+  const avg7Sleep  = avg(records.slice(0, 7), 'sleep_h')
+  const avg7Heart  = avg(records.slice(0, 7), 'rhr')
+  const avg7Mood   = avg(records.slice(0, 7), 'mood')
+  const avg7Water  = avg(records.slice(0, 7), 'water_l')
+
+  const prior7 = records.slice(7, 14)
+  const stepsDeltaPct = deltaPct(avg7Steps, avg(prior7, 'steps'))
+  const sleepDeltaPct = deltaPct(avg7Sleep, avg(prior7, 'sleep_h'))
+  const heartDeltaPct = deltaPct(avg7Heart, avg(prior7, 'rhr'))
+  const moodDeltaPct  = deltaPct(avg7Mood,  avg(prior7, 'mood'))
+  const waterDeltaPct = deltaPct(avg7Water, avg(prior7, 'water_l'))
 
   const activeNudge = nudges.find((n) => n.status === 'pending')
   const latestInsight = insightsData?.insights?.[0]
@@ -466,37 +480,41 @@ export default function Today() {
       {/* 1. Orbit Hero */}
       <OrbitHero insightsData={insightsData} records={records} onRefresh={loadData} />
 
-      {/* 2. Stat Cards Grid (4 key metrics + water mini) */}
+      {/* 2. Stat Cards Grid — shows 7-day averages vs prior 7 days */}
       <div className="stat-cards-grid">
         <StatCard
           metric="steps"
-          currentVal={latest.steps ?? 0}
+          currentVal={Math.round(avg7Steps)}
           deltaPct={stepsDeltaPct}
           sparklineData={stepsSpark}
           goal={settings.step_goal || 8000}
         />
         <StatCard
           metric="sleep"
-          currentVal={latest.sleep_h ?? 0}
+          currentVal={avg7Sleep}
           formatSleep={true}
+          deltaPct={sleepDeltaPct}
           sparklineData={sleepSpark}
           goal={settings.sleep_goal || 7.0}
         />
         <StatCard
           metric="heart"
-          currentVal={latest.rhr ?? 68}
+          currentVal={Math.round(avg7Heart) || 68}
+          deltaPct={heartDeltaPct}
           sparklineData={heartSpark}
           goal={65}
         />
         <StatCard
           metric="mood"
-          currentVal={latest.mood ?? 3.5}
+          currentVal={avg7Mood || 3.5}
+          deltaPct={moodDeltaPct}
           sparklineData={moodSpark}
           goal={4.0}
         />
         <StatCard
           metric="water"
-          currentVal={latest.water_l ?? 2.0}
+          currentVal={avg7Water || 2.0}
+          deltaPct={waterDeltaPct}
           sparklineData={waterSpark}
           goal={2.5}
         />

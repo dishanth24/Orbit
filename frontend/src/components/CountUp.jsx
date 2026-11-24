@@ -62,7 +62,9 @@ export default function CountUp({
 
   const display = formatSleep
     ? formatSleepValue(current)
-    : `${prefix}${decimals > 0 ? current.toFixed(decimals) : Math.round(current)}${suffix}`
+    : decimals > 0
+      ? `${prefix}${current.toFixed(decimals)}${suffix}`
+      : `${prefix}${Math.round(current).toLocaleString()}${suffix}`
 
   return <span className={`tabular ${className}`}>{display}</span>
 }
