@@ -1,0 +1,9 @@
+
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://orbit-backend-t6fx.onrender.com/api/:path*"
+    }
+  ]
+}
