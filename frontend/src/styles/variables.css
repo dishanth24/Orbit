@@ -1,0 +1,44 @@
+:root {
+  --bg: #F2F8F6;
+  --bg-grad: radial-gradient(1200px 600px at 10% -10%, #D9F4EC 0%, transparent 60%),
+             radial-gradient(900px 500px at 100% 0%, #E3E8FF 0%, transparent 55%);
+  --card: rgba(255,255,255,0.72);
+  --card-backdrop: blur(14px);
+  --border: rgba(14,124,107,0.12);
+  --text: #10302C;
+  --muted: #5B7370;
+  --brand: #0E7C6B;
+  --brand-2: #14B8A6;
+  --brand-tint: #DDF3EE;
+  --danger: #E04F5F;
+  --success: #2E9E5B;
+  --warn: #F5A524;
+  --shadow: 0 8px 30px rgba(14,124,107,0.10);
+  --shadow-hover: 0 14px 40px rgba(14,124,107,0.18);
+  --radius-card: 22px;
+  --radius-pill: 999px;
+  --radius-input: 14px;
+  --hero-gradient: linear-gradient(135deg, #0E7C6B 0%, #14B8A6 50%, #5B6CFF 100%);
+
+  /* Metric colours */
+  --steps: #0FA38F;
+  --sleep: #6C7BFF;
+  --heart: #F2616B;
+  --mood: #F5A524;
+  --water: #38A9F2;
+
+  /* Transitions */
+  --transition: 300ms ease;
+
+  /* Font */
+  --font: 'Inter', system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg: #0B1716;
+  --card: rgba(21,38,37,0.72);
+  --border: rgba(14,124,107,0.20);
+  --text: #E6F2F0;
+  --muted: #8BADA9;
+  --brand-tint: rgba(13,124,107,0.25);
+}
