@@ -3243,4 +3243,391 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* =====================================================================
+   FLOATING HEADER  (Fix 2)
+   Rounded 20px corners, 1px soft border, soft shadow.
+   Floating sticky with 12px gap from top.
+   Same left and right edges as page content below it.
+   Height 64px, 16px side padding, items vertically centered.
+   Solid enough background so text never bleeds through.
+   ===================================================================== */
+.clean-app-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+
+  position: sticky;
+  top: 12px;
+  z-index: 40;
+  max-width: calc(1280px - 64px);
+  width: calc(100% - 64px);
+  margin: 12px auto 0;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(14, 124, 107, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
+
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+[data-theme="dark"] .clean-app-header {
+  background: rgba(21, 38, 37, 0.94);
+  border-color: rgba(14, 124, 107, 0.22);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* Avatar chip (ME) */
+.header-avatar-chip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--hero-gradient);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(14, 124, 107, 0.25);
+  cursor: default;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+/* Date chip – sharp & readable in light & dark */
+.header-date-chip {
+  padding: 5px 12px;
+  background: var(--brand-tint);
+  color: var(--brand) !important;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+[data-theme="dark"] .header-date-chip {
+  background: rgba(20, 184, 166, 0.18);
+  color: var(--brand-2) !important;
+}
+
+@media (max-width: 639px) {
+  .clean-app-header {
+    top: 12px;
+    max-width: 100%;
+    width: calc(100% - 32px);
+    margin: 12px auto 0;
+    height: 64px;
+    padding: 0 16px;
+    border-radius: 20px;
+  }
+}
+
+/* Page container: add top padding so content starts below floating header */
+.page-container {
+  padding-top: 24px;
+}
+
+/* =====================================================================
+   INSIGHTS PAGE  (Fix 1)
+   All class names are prefixed "ins-" so they cannot collide.
+   ===================================================================== */
+
+/* Page wrapper: 32px between sections */
+.ins-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Summary card ── */
+.ins-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  flex-wrap: wrap;
+
+  /* same glass card as Today */
+  background: var(--card);
+  backdrop-filter: var(--card-backdrop);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.ins-summary__left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ins-summary__headline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ins-summary__date {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.ins-summary__chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Count chips (small, icon + number only) */
+.ins-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ins-chip--attention {
+  background: rgba(224, 79, 95, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(224, 79, 95, 0.22);
+}
+
+.ins-chip--well {
+  background: rgba(46, 158, 91, 0.12);
+  color: var(--success);
+  border: 1px solid rgba(46, 158, 91, 0.22);
+}
+
+.ins-chip--info {
+  background: rgba(108, 123, 255, 0.12);
+  color: var(--sleep);
+  border: 1px solid rgba(108, 123, 255, 0.22);
+}
+
+/* ── Section ── */
+.ins-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ins-section__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ins-section__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ins-section__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── Cards grid: 2-col desktop, 1-col mobile ── */
+.ins-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .ins-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Individual card ── */
+.ins-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+
+  background: var(--card);
+  backdrop-filter: var(--card-backdrop);
+  -webkit-backdrop-filter: var(--card-backdrop);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.ins-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Category left accent */
+.ins-card--needs_attention { border-left: 3px solid var(--danger); }
+.ins-card--going_well      { border-left: 3px solid var(--success); }
+.ins-card--good_to_know    { border-left: 3px solid var(--brand); }
+
+/* Top row: icon bubble + short title */
+.ins-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ins-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ins-card__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* Big number + delta chip on one line */
+.ins-card__metric-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ins-card__number {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* One muted sentence */
+.ins-card__body {
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* "Why?" text link (not a bordered button) */
+.ins-card__why-wrap {
+  margin-top: 2px;
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+}
+
+.ins-card__why-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--brand);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ins-card__why-btn:hover {
+  color: var(--brand-2);
+}
+
+.ins-why-chevron {
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+
+.ins-why-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.ins-card__why-drawer {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ins-why-rule {
+  font-size: 0.78rem;
+  color: var(--text);
+  background: var(--brand-tint);
+  padding: 7px 10px;
+  border-radius: 8px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.ins-why-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ins-why-ev-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  gap: 8px;
+}
+
+.ins-why-ev-key {
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.ins-why-ev-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-align: right;
+}
+
+/* Empty state */
+.ins-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+  gap: 0;
+}
+
+.ins-empty__desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  max-width: 320px;
+  line-height: 1.5;
+}
 
