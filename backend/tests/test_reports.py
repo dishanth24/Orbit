@@ -56,7 +56,9 @@ def test_xlsx_report_generation_and_numbers_match():
     ws_summary = wb["Summary"]
     score_val = ws_summary["B4"].value
     records = db.get_all_records()
-    m = metrics.compute_metrics(records)
+    step_goal = int(db.get_setting("step_goal", engine.STEP_GOAL_DEFAULT))
+    sleep_goal = float(db.get_setting("sleep_goal", engine.SLEEP_GOAL_DEFAULT))
+    m = metrics.compute_metrics(records, step_goal=step_goal, sleep_goal=sleep_goal)
 
     assert score_val == m["orbit_score"]
 
