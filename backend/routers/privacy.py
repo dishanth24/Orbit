@@ -70,12 +70,14 @@ def ai_summary(body: AISummaryRequest):
 def _local_summary(payload: dict, result: dict) -> str:
     score = payload.get("orbit_score", 0)
     band  = payload.get("band", "")
-    avg_steps = payload.get("avg_steps", 0)
-    avg_sleep = payload.get("avg_sleep_h", 0)
+    avg_steps = payload.get("avg_steps")
+    avg_steps_str = f"{avg_steps:,}" if avg_steps is not None else "N/A"
+    avg_sleep = payload.get("avg_sleep_h")
+    avg_sleep_str = f"{avg_sleep:.1f}h" if avg_sleep is not None else "N/A"
     streak    = payload.get("streak", 0)
     return (
         f"Your Orbit Score is {score}/100 ({band}). "
-        f"You're averaging {avg_steps:,} steps and {avg_sleep:.1f}h of sleep per day. "
+        f"You're averaging {avg_steps_str} steps and {avg_sleep_str} of sleep per day. "
         f"Keep up your {streak}-day streak — every step counts!"
     )
 

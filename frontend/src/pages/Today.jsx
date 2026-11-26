@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Footprints, Moon, Heart, Smile, Droplets, Flame, ArrowRight,
-  Sparkles, Upload, RefreshCw, ChevronRight, Check
+  Sparkles, Upload, RefreshCw, ChevronRight, Check, HelpCircle, X, Info
 } from 'lucide-react'
 import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  ReferenceLine, ReferenceArea
+  ReferenceLine
 } from 'recharts'
 import { useApi } from '../hooks/useApi'
 import { useAppContext } from '../context/AppContext'
 import { useToastContext } from '../context/ToastContext'
-import { useVoice } from '../hooks/useVoice'
 import ScoreRing from '../components/ScoreRing'
 import CountUp from '../components/CountUp'
 import DeltaChip from '../components/DeltaChip'
@@ -26,198 +25,63 @@ const METRIC_CONFIG = {
     icon: Footprints,
     color: 'var(--steps)',
     unit: 'steps',
-    defaultGoal: 8000,
+    formula: 'Average of valid days in Window A vs Window B: (A - B) / B × 100',
   },
   sleep: {
     label: 'Sleep',
     icon: Moon,
     color: 'var(--sleep)',
     unit: 'hours',
-    defaultGoal: 7.0,
+    formula: 'Average nightly sleep duration in Window A vs Window B: (A - B) / B × 100',
   },
   heart: {
     label: 'Resting HR',
     icon: Heart,
     color: 'var(--heart)',
     unit: 'bpm',
-    defaultGoal: 65,
+    formula: 'Difference in resting heart rate: Window A bpm - Window B bpm',
   },
   mood: {
     label: 'Mood',
     icon: Smile,
     color: 'var(--mood)',
     unit: '/ 5',
-    defaultGoal: 4.0,
+    formula: 'Average mood rating (1-5 scale) in Window A vs Window B',
   },
   water: {
     label: 'Water',
     icon: Droplets,
     color: 'var(--water)',
     unit: 'L',
-    defaultGoal: 2.5,
+    formula: 'Daily hydration volume in Window A vs Window B',
   },
 }
 
-function OrbitHero({ insightsData, records, onRefresh }) {
-  const score = insightsData?.score ?? 0
-  const band = insightsData?.band || 'Calculating orbit...'
-  const headline = insightsData?.headline || 'Your personal health intelligence at a glance.'
-  const streak = insightsData?.streak || 0
-  const scoreParts = insightsData?.score_parts || {}
-
-  // Last recorded day values for the 5 orbiting orbs
-  const latest = records?.[0] || {}
-  const orbs = [
-    {
-      id: 'steps',
-      label: 'Steps',
-      val: latest.steps ?? 0,
-      disp: (latest.steps ?? 0).toLocaleString(),
-      goal: 8000,
-      color: 'var(--steps)',
-      icon: Footprints,
-      angle: 0,
-    },
-    {
-      id: 'sleep',
-      label: 'Sleep',
-      val: latest.sleep_h ?? 0,
-      disp: `${Math.floor(latest.sleep_h || 0)}h ${Math.round(((latest.sleep_h || 0) % 1) * 60)}m`,
-      goal: 7.0,
-      color: 'var(--sleep)',
-      icon: Moon,
-      angle: 72,
-    },
-    {
-      id: 'heart',
-      label: 'HR',
-      val: latest.rhr ?? 68,
-      disp: `${latest.rhr ?? '--'} bpm`,
-      goal: 65,
-      color: 'var(--heart)',
-      icon: Heart,
-      angle: 144,
-    },
-    {
-      id: 'mood',
-      label: 'Mood',
-      val: latest.mood ?? 3,
-      disp: `${latest.mood ? latest.mood.toFixed(1) : '--'}/5`,
-      goal: 4.0,
-      color: 'var(--mood)',
-      icon: Smile,
-      angle: 216,
-    },
-    {
-      id: 'water',
-      label: 'Water',
-      val: latest.water_l ?? 0,
-      disp: `${(latest.water_l ?? 0).toFixed(1)}L`,
-      goal: 2.5,
-      color: 'var(--water)',
-      icon: Droplets,
-      angle: 288,
-    },
-  ]
-
-  return (
-    <section className="orbit-hero-card">
-      <div className="hero-header-row">
-        <div className="hero-tagline-wrap">
-          <Tagline size="hero" />
-        </div>
-        <div className="hero-streak-pill" title="Current Goal Streak">
-          <Flame size={18} className="flame-icon" />
-          <span>
-            <CountUp value={streak} /> day streak
-          </span>
-        </div>
-      </div>
-
-      <p className="hero-headline">{headline}</p>
-
-      {/* Orbit Visualization Arena */}
-      <div className="orbit-arena">
-        {/* Track ellipses */}
-        <div className="orbit-track-ring" />
-        <div className="orbit-track-ring-inner" />
-
-        {/* Orbit Rotating System */}
-        <div className="orbiting-system">
-          {orbs.map((orb, index) => {
-            const pct = Math.min(1.2, Math.max(0.4, orb.val / (orb.goal || 1)))
-            const orbSize = Math.round(44 + (pct - 0.4) * 35) // 44px to 76px
-            const initialAngle = (index * 72)
-
-            return (
-              <div
-                key={orb.id}
-                className="orb-carrier"
-                style={{
-                  '--start-angle': `${initialAngle}deg`,
-                  '--carrier-radius-x': '130px',
-                  '--carrier-radius-y': '95px',
-                }}
-              >
-                <div
-                  className="metric-orb"
-                  style={{
-                    width: orbSize,
-                    height: orbSize,
-                    background: `radial-gradient(circle at 35% 35%, #fff 0%, ${orb.color} 75%)`,
-                    boxShadow: `0 4px 18px ${orb.color}55`,
-                  }}
-                  title={`${orb.label}: ${orb.disp} (${Math.round((orb.val / orb.goal) * 100)}% of goal)`}
-                >
-                  <div className="orb-counter-rotate">
-                    <orb.icon size={orbSize > 56 ? 18 : 14} color="#fff" />
-                    <span className="orb-value-text">{orb.disp}</span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Center Ring: Orbit Score */}
-        <div className="center-score-wrap">
-          <ScoreRing score={score} size={190} />
-          <div className="score-band-badge">{band}</div>
-        </div>
-      </div>
-
-      {/* Score breakdown strip */}
-      <div className="score-breakdown-strip">
-        <span className="breakdown-label">Score weights:</span>
-        <span className="breakdown-item" style={{ color: 'var(--steps)' }}>
-          Steps <strong>{scoreParts.steps ? Math.round(scoreParts.steps * 30) : 0}/30</strong>
-        </span>
-        <span className="breakdown-dot">•</span>
-        <span className="breakdown-item" style={{ color: 'var(--sleep)' }}>
-          Sleep <strong>{scoreParts.sleep ? Math.round(scoreParts.sleep * 30) : 0}/30</strong>
-        </span>
-        <span className="breakdown-dot">•</span>
-        <span className="breakdown-item" style={{ color: 'var(--heart)' }}>
-          Heart <strong>{scoreParts.heart ? Math.round(scoreParts.heart * 15) : 0}/15</strong>
-        </span>
-        <span className="breakdown-dot">•</span>
-        <span className="breakdown-item" style={{ color: 'var(--mood)' }}>
-          Mood <strong>{scoreParts.mood ? Math.round(scoreParts.mood * 15) : 0}/15</strong>
-        </span>
-        <span className="breakdown-dot">•</span>
-        <span className="breakdown-item" style={{ color: 'var(--brand)' }}>
-          Consistency <strong>{scoreParts.consistency ? Math.round(scoreParts.consistency * 10) : 0}/10</strong>
-        </span>
-      </div>
-    </section>
-  )
-}
-
-function StatCard({ metric, currentVal, unit, delta, deltaPct, sparklineData, goal, formatSleep = false }) {
+function StatCard({ metric, metricData, windowA, windowB, formatSleep = false }) {
   const conf = METRIC_CONFIG[metric] || {}
   const Icon = conf.icon || Footprints
   const color = conf.color || 'var(--brand)'
-  const progressPct = goal ? Math.min(100, Math.round((currentVal / goal) * 100)) : null
+  const [showHelp, setShowHelp] = useState(false)
+  const helpRef = useRef(null)
+
+  const avgVal = metricData?.avg
+  const priorAvg = metricData?.prior_avg
+  const changeVal = metricData?.change
+  const goalVal = metricData?.goal
+  const goalPct = metricData?.goal_pct ?? (avgVal && goalVal ? Math.round((avgVal / goalVal) * 100) : 0)
+  const insufficient = metricData?.insufficient || false
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (helpRef.current && !helpRef.current.contains(e.target)) {
+        setShowHelp(false)
+      }
+    }
+    if (showHelp) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showHelp])
 
   return (
     <div className="card stat-card">
@@ -228,53 +92,232 @@ function StatCard({ metric, currentVal, unit, delta, deltaPct, sparklineData, go
           </div>
           <span className="stat-card-title">{conf.label}</span>
         </div>
-        {deltaPct !== undefined && <DeltaChip value={deltaPct} suffix="%" />}
+
+        {/* Calculation Info Popover Button */}
+        <div className="calc-help-anchor" ref={helpRef}>
+          <button
+            className="calc-help-btn"
+            onClick={() => setShowHelp((prev) => !prev)}
+            title="How is this calculated?"
+            aria-label={`Calculation details for ${conf.label}`}
+          >
+            <HelpCircle size={15} />
+          </button>
+
+          {showHelp && (
+            <div className="calc-help-popover card">
+              <div className="popover-header">
+                <strong>{conf.label} Calculation</strong>
+                <button onClick={() => setShowHelp(false)} className="popover-close-btn">
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="popover-body">
+                <div className="calc-row">
+                  <span className="calc-k">Window A (This Week):</span>
+                  <span className="calc-v">
+                    {windowA?.formatted_range || 'Current'} ({metricData?.n ?? 7} days used)
+                  </span>
+                </div>
+                <div className="calc-row">
+                  <span className="calc-k">This Week Average:</span>
+                  <span className="calc-v bold">
+                    {avgVal !== null && avgVal !== undefined
+                      ? `${typeof avgVal === 'number' ? avgVal.toLocaleString() : avgVal} ${conf.unit}`
+                      : 'Not enough data'}
+                  </span>
+                </div>
+                <div className="calc-row">
+                  <span className="calc-k">Window B (Prior Week):</span>
+                  <span className="calc-v">
+                    {windowB?.formatted_range || 'Previous'} ({metricData?.n_prior ?? 0} days used)
+                  </span>
+                </div>
+                <div className="calc-row">
+                  <span className="calc-k">Prior Average:</span>
+                  <span className="calc-v">
+                    {priorAvg !== null && priorAvg !== undefined
+                      ? `${typeof priorAvg === 'number' ? priorAvg.toLocaleString() : priorAvg} ${conf.unit}`
+                      : 'Not enough data'}
+                  </span>
+                </div>
+                <div className="calc-formula-box">
+                  <span className="calc-k">Formula:</span>
+                  <p className="formula-text">{conf.formula}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="stat-value-row">
         <span className="stat-big-number" style={{ color: 'var(--text)' }}>
-          <CountUp
-            value={currentVal || 0}
-            decimals={metric === 'sleep' || metric === 'mood' || metric === 'water' ? 1 : 0}
-            formatSleep={formatSleep}
-          />
+          {insufficient || avgVal === null || avgVal === undefined ? (
+            <span style={{ fontSize: '1.2rem', color: 'var(--muted)' }}>Not enough data</span>
+          ) : (
+            <CountUp
+              value={avgVal}
+              decimals={metric === 'sleep' || metric === 'mood' || metric === 'water' ? 1 : 0}
+              formatSleep={formatSleep}
+            />
+          )}
         </span>
-        <span className="stat-unit">{unit || conf.unit}</span>
+        {!insufficient && avgVal !== null && (
+          <span className="stat-unit">{conf.unit}</span>
+        )}
       </div>
 
-      {progressPct !== null && (
+      {/* Change Chip */}
+      <div className="stat-delta-row">
+        <DeltaChip
+          value={changeVal}
+          metric={metric}
+          insufficient={insufficient || metricData?.prior_insufficient}
+          tooltip="vs the previous 7 days"
+        />
+      </div>
+
+      {/* Goal Progress Bar */}
+      {goalVal && !insufficient && (
         <div className="stat-progress-section">
           <div className="stat-goal-label">
-            <span>Goal: {goal} {conf.unit}</span>
-            <span>{progressPct}%</span>
+            <span>Goal: {goalVal.toLocaleString()} {conf.unit}</span>
+            <span className="goal-pct-text">{goalPct}% of goal</span>
           </div>
-          <ProgressBar value={progressPct} color={color} />
-        </div>
-      )}
-
-      {sparklineData && sparklineData.length > 0 && (
-        <div className="stat-sparkline-wrap">
-          <ResponsiveContainer width="100%" height={45}>
-            <AreaChart data={sparklineData} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
-              <defs>
-                <linearGradient id={`spark-${metric}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.4} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={color}
-                strokeWidth={2}
-                fill={`url(#spark-${metric})`}
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <ProgressBar value={Math.min(100, goalPct)} color={color} />
         </div>
       )}
     </div>
+  )
+}
+
+function OrbitHero({ insightsData }) {
+  const [showScoreInfo, setShowScoreInfo] = useState(false)
+  const scoreInfoRef = useRef(null)
+
+  const m = insightsData?.metrics || {}
+  const score = m.orbit_score ?? (insightsData?.score ?? 0)
+  const band = m.band || (insightsData?.band || 'Calculating orbit...')
+  const headline = insightsData?.headline || 'Your personal health intelligence at a glance.'
+  const streak = m.streak ?? (insightsData?.streak ?? 0)
+  const scoreParts = m.score_parts || (insightsData?.score_parts || {})
+  const windowLabel = m.window_a?.label || 'Based on 7 calendar days'
+
+  const metricsObj = m.metrics || {}
+  const orbs = [
+    { id: 'steps', label: 'Steps', val: metricsObj.steps?.avg, disp: metricsObj.steps?.avg ? `${metricsObj.steps.avg.toLocaleString()}` : '--', color: 'var(--steps)', icon: Footprints },
+    { id: 'sleep', label: 'Sleep', val: metricsObj.sleep?.avg, disp: metricsObj.sleep?.avg ? `${metricsObj.sleep.avg}h` : '--', color: 'var(--sleep)', icon: Moon },
+    { id: 'heart', label: 'HR',    val: metricsObj.heart?.avg, disp: metricsObj.heart?.avg ? `${metricsObj.heart.avg} bpm` : '--', color: 'var(--heart)', icon: Heart },
+    { id: 'mood',  label: 'Mood',  val: metricsObj.mood?.avg,  disp: metricsObj.mood?.avg ? `${metricsObj.mood.avg}/5` : '--', color: 'var(--mood)', icon: Smile },
+    { id: 'water', label: 'Water', val: metricsObj.water?.avg, disp: metricsObj.water?.avg ? `${metricsObj.water.avg}L` : '--', color: 'var(--water)', icon: Droplets },
+  ]
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (scoreInfoRef.current && !scoreInfoRef.current.contains(e.target)) {
+        setShowScoreInfo(false)
+      }
+    }
+    if (showScoreInfo) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showScoreInfo])
+
+  return (
+    <section className="orbit-hero-one-row card">
+      {/* 1. Left: Tagline, short summary headline, chips & Proof */}
+      <div className="hero-col-left">
+        <Tagline size="hero" />
+        <p className="hero-one-sentence">{headline}</p>
+
+        <div className="hero-chips-row">
+          <span className="hero-band-chip">{band}</span>
+          <span className="hero-streak-chip">
+            <Flame size={15} className="flame-icon" />
+            <CountUp value={streak} /> day streak
+          </span>
+        </div>
+
+        {/* Proof under the hero */}
+        <div className="hero-proof-badge" title="Exact data coverage used for this week">
+          <Info size={14} className="proof-info-icon" />
+          <span>{windowLabel}</span>
+        </div>
+      </div>
+
+      {/* 2. Middle: Orbit Score Ring with Info Popover */}
+      <div className="hero-col-middle" ref={scoreInfoRef}>
+        <div className="score-ring-anchor">
+          <ScoreRing score={score} size={148} />
+          <button
+            className="score-weights-trigger"
+            onClick={() => setShowScoreInfo((prev) => !prev)}
+            title="View Score weights breakdown"
+            aria-label="View Score weights breakdown"
+          >
+            <HelpCircle size={14} />
+            <span>Weights</span>
+          </button>
+        </div>
+
+        {showScoreInfo && (
+          <div className="score-weights-popover card">
+            <div className="popover-header">
+              <strong>Orbit Score Weights (0-100)</strong>
+              <button onClick={() => setShowScoreInfo(false)} className="popover-close-btn">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="popover-body">
+              <div className="calc-row">
+                <span className="calc-k" style={{ color: 'var(--steps)' }}>● Steps:</span>
+                <span className="calc-v">{scoreParts.steps ?? 0} / 30 pts</span>
+              </div>
+              <div className="calc-row">
+                <span className="calc-k" style={{ color: 'var(--sleep)' }}>● Sleep Duration:</span>
+                <span className="calc-v">{scoreParts.sleep ?? 0} / 30 pts</span>
+              </div>
+              <div className="calc-row">
+                <span className="calc-k" style={{ color: 'var(--heart)' }}>● Resting Heart Rate:</span>
+                <span className="calc-v">{scoreParts.heart ?? 0} / 15 pts</span>
+              </div>
+              <div className="calc-row">
+                <span className="calc-k" style={{ color: 'var(--mood)' }}>● Mood Index:</span>
+                <span className="calc-v">{scoreParts.mood ?? 0} / 15 pts</span>
+              </div>
+              <div className="calc-row">
+                <span className="calc-k" style={{ color: 'var(--brand)' }}>● Goal Consistency:</span>
+                <span className="calc-v">{scoreParts.consistency ?? 0} / 10 pts</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Right: Fixed non-overlapping orbs with gentle float */}
+      <div className="hero-col-right">
+        <div className="orbs-fixed-cluster">
+          {orbs.map((orb, i) => (
+            <div
+              key={orb.id}
+              className={`fixed-cluster-orb orb-${orb.id}`}
+              style={{
+                borderColor: orb.color,
+                background: `radial-gradient(circle at 35% 35%, #fff 0%, ${orb.color}22 60%, ${orb.color}44 100%)`,
+                animationDelay: `${i * -1.5}s`,
+              }}
+              title={`${orb.label}: ${orb.disp}`}
+            >
+              <orb.icon size={17} style={{ color: orb.color }} />
+              <span className="orb-metric-label">{orb.label}</span>
+              <span className="orb-metric-val">{orb.disp}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -329,10 +372,7 @@ function EmptyStateToday({ onLoadDemo, loadingDemo }) {
           )}
         </button>
 
-        <button
-          className="btn-secondary"
-          onClick={() => navigate('/settings')}
-        >
+        <button className="btn-secondary" onClick={() => navigate('/settings')}>
           <Upload size={18} />
           Upload CSV
         </button>
@@ -345,8 +385,6 @@ export default function Today() {
   const api = useApi()
   const { hasData, setHasData, settings } = useAppContext()
   const { addToast } = useToastContext()
-  const { speak } = useVoice()
-  const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
   const [loadingDemo, setLoadingDemo] = useState(false)
@@ -363,7 +401,7 @@ export default function Today() {
     ])
 
     if (recRes.data) {
-      const list = Array.isArray(recRes.data) ? recRes.data : (recRes.data.records || [])
+      const list = Array.isArray(recRes.data) ? recRes.data : recRes.data.records || []
       setRecords(list)
       setHasData(list.length > 0)
     }
@@ -382,28 +420,33 @@ export default function Today() {
 
   const handleLoadDemo = async () => {
     setLoadingDemo(true)
-    const { data, error } = await api.loadDemo()
+    const { error } = await api.loadDemo()
     setLoadingDemo(false)
     if (error) {
       addToast(error, 'error')
       return
     }
     addToast('30 days loaded! Welcome to Orbit.', 'success')
-    speak('Welcome to Orbit. Thirty days of health data loaded.')
     await loadData()
   }
 
-  // Pre-calculate 7-day chart data
-  // records[0] = newest (API returns DESC). Charts must show oldest→newest (left→right).
+  const m = insightsData?.metrics || {}
+  const windowA = m.window_a
+  const windowB = m.window_b
+  const metricsMap = m.metrics || {}
+
+  // 7-day chronological charts (oldest to newest left to right)
   const last7Records = useMemo(() => {
-    return records.slice(0, 7).reverse() // oldest first → correct chart direction
+    if (!records.length) return []
+    // Take the 7 records and sort chronologically ascending
+    return [...records].slice(-7).sort((a, b) => a.date.localeCompare(b.date))
   }, [records])
 
   const stepsChartData = useMemo(() => {
     return last7Records.map((r) => {
       const d = new Date(r.date + 'T00:00:00')
       return {
-        date: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        date: d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' }),
         steps: r.steps ?? 0,
       }
     })
@@ -413,42 +456,11 @@ export default function Today() {
     return last7Records.map((r) => {
       const d = new Date(r.date + 'T00:00:00')
       return {
-        date: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        date: d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' }),
         sleep_h: Number((r.sleep_h ?? 0).toFixed(1)),
       }
     })
   }, [last7Records])
-
-  // Sparkline data for each metric (7 data points, oldest→newest)
-  const stepsSpark = useMemo(() => last7Records.map((r) => ({ value: r.steps ?? 0 })), [last7Records])
-  const sleepSpark = useMemo(() => last7Records.map((r) => ({ value: r.sleep_h ?? 0 })), [last7Records])
-  const heartSpark = useMemo(() => last7Records.map((r) => ({ value: r.rhr ?? 65 })), [last7Records])
-  const moodSpark  = useMemo(() => last7Records.map((r) => ({ value: r.mood ?? 3 })), [last7Records])
-  const waterSpark = useMemo(() => last7Records.map((r) => ({ value: r.water_l ?? 0 })), [last7Records])
-
-  // 7-day averages for stat cards — consistent with insights engine
-  function avg(arr, key) {
-    const vals = arr.map(r => r[key]).filter(v => v != null && !isNaN(v))
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
-  }
-  function deltaPct(curr, prev) {
-    if (!prev) return 0
-    const d = Math.round(((curr - prev) / prev) * 100)
-    return isFinite(d) ? d : 0
-  }
-
-  const avg7Steps  = avg(records.slice(0, 7), 'steps')
-  const avg7Sleep  = avg(records.slice(0, 7), 'sleep_h')
-  const avg7Heart  = avg(records.slice(0, 7), 'rhr')
-  const avg7Mood   = avg(records.slice(0, 7), 'mood')
-  const avg7Water  = avg(records.slice(0, 7), 'water_l')
-
-  const prior7 = records.slice(7, 14)
-  const stepsDeltaPct = deltaPct(avg7Steps, avg(prior7, 'steps'))
-  const sleepDeltaPct = deltaPct(avg7Sleep, avg(prior7, 'sleep_h'))
-  const heartDeltaPct = deltaPct(avg7Heart, avg(prior7, 'rhr'))
-  const moodDeltaPct  = deltaPct(avg7Mood,  avg(prior7, 'mood'))
-  const waterDeltaPct = deltaPct(avg7Water, avg(prior7, 'water_l'))
 
   const activeNudge = nudges.find((n) => n.status === 'pending')
   const latestInsight = insightsData?.insights?.[0]
@@ -456,16 +468,17 @@ export default function Today() {
   if (loading) {
     return (
       <div className="today-page-skeleton">
-        <SkeletonCard height={320} />
-        <div className="bento-grid-4">
+        <SkeletonCard height={240} />
+        <div className="bento-grid-5">
+          <SkeletonCard height={140} />
           <SkeletonCard height={140} />
           <SkeletonCard height={140} />
           <SkeletonCard height={140} />
           <SkeletonCard height={140} />
         </div>
         <div className="bento-grid-2">
-          <SkeletonCard height={260} />
-          <SkeletonCard height={260} />
+          <SkeletonCard height={240} />
+          <SkeletonCard height={240} />
         </div>
       </div>
     )
@@ -477,50 +490,45 @@ export default function Today() {
 
   return (
     <div className="today-page">
-      {/* 1. Orbit Hero */}
-      <OrbitHero insightsData={insightsData} records={records} onRefresh={loadData} />
+      {/* 1. Orbit Hero in One Row */}
+      <OrbitHero insightsData={insightsData} />
 
-      {/* 2. Stat Cards Grid — shows 7-day averages vs prior 7 days */}
+      {/* 2. Stat Cards Grid (Values read strictly from canonical metrics) */}
       <div className="stat-cards-grid">
         <StatCard
           metric="steps"
-          currentVal={Math.round(avg7Steps)}
-          deltaPct={stepsDeltaPct}
-          sparklineData={stepsSpark}
-          goal={settings.step_goal || 8000}
+          metricData={metricsMap.steps}
+          windowA={windowA}
+          windowB={windowB}
         />
         <StatCard
           metric="sleep"
-          currentVal={avg7Sleep}
+          metricData={metricsMap.sleep}
+          windowA={windowA}
+          windowB={windowB}
           formatSleep={true}
-          deltaPct={sleepDeltaPct}
-          sparklineData={sleepSpark}
-          goal={settings.sleep_goal || 7.0}
         />
         <StatCard
           metric="heart"
-          currentVal={Math.round(avg7Heart) || 68}
-          deltaPct={heartDeltaPct}
-          sparklineData={heartSpark}
-          goal={65}
+          metricData={metricsMap.heart}
+          windowA={windowA}
+          windowB={windowB}
         />
         <StatCard
           metric="mood"
-          currentVal={avg7Mood || 3.5}
-          deltaPct={moodDeltaPct}
-          sparklineData={moodSpark}
-          goal={4.0}
+          metricData={metricsMap.mood}
+          windowA={windowA}
+          windowB={windowB}
         />
         <StatCard
           metric="water"
-          currentVal={avg7Water || 2.0}
-          deltaPct={waterDeltaPct}
-          sparklineData={waterSpark}
-          goal={2.5}
+          metricData={metricsMap.water}
+          windowA={windowA}
+          windowB={windowB}
         />
       </div>
 
-      {/* 3. Bento Section: Charts + Nudge & Insight */}
+      {/* 3. 7-Day Chronological Charts (Oldest to newest, left to right, dashed goal line) */}
       <div className="bento-charts-grid">
         {/* Steps 7-Day Chart */}
         <div className="card chart-bento-card">
@@ -534,9 +542,9 @@ export default function Today() {
             </span>
           </div>
           <div className="chart-canvas-wrap">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={210}>
               <BarChart data={stepsChartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="date" stroke="var(--muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="date" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
                   cursor={{ fill: 'rgba(14,124,107,0.06)' }}
@@ -546,7 +554,7 @@ export default function Today() {
                     borderRadius: '12px',
                     boxShadow: 'var(--shadow)',
                   }}
-                  formatter={(val) => [`${val.toLocaleString()} steps`, 'Steps']}
+                  formatter={(val) => [`${Number(val).toLocaleString()} steps`, 'Steps']}
                 />
                 <ReferenceLine
                   y={settings.step_goal || 8000}
@@ -554,7 +562,7 @@ export default function Today() {
                   strokeDasharray="4 4"
                   strokeOpacity={0.8}
                 />
-                <Bar dataKey="steps" fill="var(--steps)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="steps" fill="var(--steps)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -572,15 +580,15 @@ export default function Today() {
             </span>
           </div>
           <div className="chart-canvas-wrap">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={210}>
               <AreaChart data={sleepChartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="sleep-area-grad" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="sleep-area-grad-v3" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--sleep)" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="var(--sleep)" stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" stroke="var(--muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="date" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted)" fontSize={11} domain={[0, 10]} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{
@@ -602,7 +610,7 @@ export default function Today() {
                   dataKey="sleep_h"
                   stroke="var(--sleep)"
                   strokeWidth={2.5}
-                  fill="url(#sleep-area-grad)"
+                  fill="url(#sleep-area-grad-v3)"
                 />
               </AreaChart>
             </ResponsiveContainer>

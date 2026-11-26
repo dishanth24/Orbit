@@ -1,126 +1,118 @@
 import React, { useState } from 'react'
-import EvidencePill from './EvidencePill'
-import { ChevronDown } from 'lucide-react'
+import {
+  Footprints, Moon, Heart, Smile, Droplets, Flame, Sparkles,
+  ChevronDown, Activity
+} from 'lucide-react'
+import DeltaChip from './DeltaChip'
 
-const SEVERITY_COLORS = {
-  good: 'var(--success)',
-  info: 'var(--brand)',
-  warn: 'var(--warn)',
-  bad: 'var(--danger)',
+const LINE_ICONS = {
+  steps: Footprints,
+  sleep: Moon,
+  sleep_h: Moon,
+  heart: Heart,
+  rhr: Heart,
+  mood: Smile,
+  water: Droplets,
+  water_l: Droplets,
+  consistency: Flame,
 }
 
-const METRIC_ICONS = {
-  steps: '👟',
-  sleep: '😴',
-  heart: '❤️',
-  mood: '😊',
-  water: '💧',
-  consistency: '🔥',
+function formatDateFriendly(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return dateStr
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+  }
+  return dateStr
 }
 
 export default function InsightCard({ insight }) {
   const [expanded, setExpanded] = useState(false)
 
-  const severity = insight.severity || 'info'
-  const sevColor = SEVERITY_COLORS[severity] || 'var(--brand)'
-  const icon = METRIC_ICONS[insight.metric] || '💡'
+  const metricKey = (insight.metric || 'steps').toLowerCase()
+  const Icon = LINE_ICONS[metricKey] || Activity
+  const category = insight.category || 'good_to_know'
+
+  const sevColor =
+    category === 'needs_attention'
+      ? 'var(--danger)'
+      : category === 'going_well'
+      ? 'var(--success)'
+      : 'var(--brand)'
+
+  const keyNumber = insight.key_number
+  const changeVal = insight.change
 
   return (
-    <div
-      className="card insight-card"
-      style={{
-        padding: '18px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        {/* Icon with severity dot */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <span style={{ fontSize: '1.4rem' }}>{icon}</span>
-          <span
-            style={{
-              position: 'absolute',
-              bottom: -1,
-              right: -3,
-              width: 9,
-              height: 9,
-              background: sevColor,
-              borderRadius: '50%',
-              border: '1.5px solid var(--card)',
-            }}
-          />
+    <div className={`card insight-clean-card category-${category}`}>
+      <div className="insight-card-top-row">
+        {/* Consistent Line Icon */}
+        <div className="insight-icon-bubble" style={{ background: `${sevColor}15`, color: sevColor }}>
+          <Icon size={18} strokeWidth={2} />
         </div>
 
-        <div style={{ flex: 1 }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>
-            {insight.title}
-          </h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
-            {insight.body}
-          </p>
+        {/* Title & One Sentence */}
+        <div className="insight-content-block">
+          <h3 className="insight-title">{insight.title}</h3>
+          <p className="insight-body-sentence">{insight.body}</p>
         </div>
+
+        {/* One Key Number & Change Chip (No clutter) */}
+        {keyNumber !== undefined && keyNumber !== null && (
+          <div className="insight-metric-summary-col">
+            <span className="insight-key-number">
+              {typeof keyNumber === 'number' ? keyNumber.toLocaleString() : keyNumber}
+            </span>
+            {changeVal !== null && changeVal !== undefined && (
+              <DeltaChip
+                value={changeVal}
+                metric={insight.metric}
+                tooltip="vs the previous 7 days"
+              />
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Evidence pills */}
-      {insight.evidence && Object.keys(insight.evidence).length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {Object.entries(insight.evidence).map(([key, val]) => (
-            <EvidencePill key={key} metric={insight.metric} value={val} label={key.replace(/_/g, ' ')} />
-          ))}
-        </div>
-      )}
-
-      {/* Why expander */}
+      {/* Why am I seeing this? Expander */}
       {insight.rule && (
-        <div>
+        <div className="insight-expander-wrap">
           <button
             onClick={() => setExpanded(!expanded)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--muted)',
-              fontSize: '0.8rem',
-              fontFamily: 'var(--font)',
-              padding: '4px 0',
-              fontWeight: 600,
-            }}
+            className="why-seeing-btn"
+            aria-expanded={expanded}
           >
             <ChevronDown
               size={14}
-              style={{
-                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 300ms ease',
-              }}
+              className={`why-chevron ${expanded ? 'rotated' : ''}`}
             />
-            Why am I seeing this?
+            <span>Why am I seeing this?</span>
           </button>
 
-          <div
-            style={{
-              maxHeight: expanded ? '200px' : '0px',
-              overflow: 'hidden',
-              transition: 'max-height 350ms ease',
-            }}
-          >
-            <div
-              style={{
-                padding: '10px 12px',
-                background: 'var(--brand-tint)',
-                borderRadius: 10,
-                marginTop: 6,
-              }}
-            >
-              <p style={{ fontSize: '0.82rem', color: 'var(--text)', lineHeight: 1.5 }}>
-                {insight.rule}
-              </p>
+          {expanded && (
+            <div className="why-seeing-drawer">
+              <div className="rule-badge">
+                <strong>Rule:</strong> {insight.rule}
+              </div>
+
+              {insight.evidence && Object.keys(insight.evidence).length > 0 && (
+                <div className="evidence-grid">
+                  {Object.entries(insight.evidence).map(([key, val]) => (
+                    <div key={key} className="evidence-item">
+                      <span className="ev-key">{key.replace(/_/g, ' ')}:</span>
+                      <span className="ev-val">
+                        {typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)
+                          ? formatDateFriendly(val)
+                          : typeof val === 'number'
+                          ? val.toLocaleString()
+                          : String(val)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

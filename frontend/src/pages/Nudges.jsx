@@ -8,7 +8,7 @@ import CountUp from '../components/CountUp'
 import SkeletonCard from '../components/SkeletonCard'
 
 const SNOOZE_PRESETS = [
-  { label: '1 hour', value: '1h' },
+  { label: '3 hours', value: '3h' },
   { label: 'Tonight', value: 'tonight' },
   { label: 'Tomorrow', value: 'tomorrow' },
 ]

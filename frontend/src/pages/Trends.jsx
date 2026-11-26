@@ -47,6 +47,18 @@ const METRIC_DEFS = {
   },
 }
 
+// Format "2026-11-12" -> "Thu 12 Nov"
+function formatFriendlyDate(dateStr) {
+  if (!dateStr || dateStr === 'N/A') return 'N/A'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const d = new Date(dateStr + 'T00:00:00')
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${weekdays[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`
+  }
+  return dateStr
+}
+
 export default function Trends() {
   const api = useApi()
   const { hasData } = useAppContext()
@@ -71,9 +83,9 @@ export default function Trends() {
   }, [days])
 
   // Build chart dataset with primary and overlay metrics merged
+  // Explicitly sort oldest to newest, left to right
   const chartData = useMemo(() => {
-    // Sort oldest to newest for chronological trend
-    const sorted = [...records].reverse()
+    const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date))
     return sorted.map((r) => {
       const d = new Date(r.date + 'T00:00:00')
       return {
@@ -108,7 +120,7 @@ export default function Trends() {
       min,
       max,
       bestVal,
-      bestDate: bestRec ? bestRec.date : 'N/A',
+      bestDate: bestRec ? formatFriendlyDate(bestRec.date) : 'N/A',
     }
   }, [records, primaryMetric])
 
@@ -250,6 +262,10 @@ export default function Trends() {
                     border: '1px solid var(--border)',
                     borderRadius: '12px',
                     boxShadow: 'var(--shadow)',
+                  }}
+                  labelFormatter={(label, payload) => {
+                    const fullDate = payload?.[0]?.payload?.fullDate
+                    return fullDate ? formatFriendlyDate(fullDate) : label
                   }}
                   formatter={(val, name) => {
                     const c = METRIC_DEFS[name] || {}

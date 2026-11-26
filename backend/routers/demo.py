@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
 
 import db
@@ -9,11 +9,28 @@ router = APIRouter()
 
 @router.post("/demo")
 def load_demo():
+    # Rule 4: If real data exists, block loading demo data so it cannot mix in
+    if db.has_real_records():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot load demo data: real health data exists. Clear your data first to load demo data.",
+        )
+
+    # Rule 1: Loading demo data must delete old demo rows first
+    db.delete_demo_records()
+
+    # Rule 3: Never delete real uploaded rows (already guaranteed above and by delete_demo_records)
+
     records = engine.generate_demo_records()
     for rec in records:
         db.upsert_record(rec["date"], rec)
 
-    # Generate and persist nudges
+    # Mark as demo data
+    db.upsert_setting("is_demo_data", "true")
+
+    # Clear stale nudges and persist fresh ones for the demo set
+    with db.get_db() as conn:
+        conn.execute("DELETE FROM nudges")
     all_records = db.get_all_records()
     result = engine.compute_insights(all_records)
     _save_nudges(result["nudges"])

@@ -1,0 +1,21 @@
+name: Backend Keep-Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render free-tier instance from sleeping
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Orbit Health Endpoint
+        run: |
+          BACKEND_URL="${{ vars.BACKEND_URL }}"
+          if [ -n "$BACKEND_URL" ]; then
+            echo "Pinging $BACKEND_URL/api/health"
+            curl -s -f "$BACKEND_URL/api/health" || echo "Ping attempted"
+          else
+            echo "vars.BACKEND_URL is not set. Please configure it in repository variables."
+          fi

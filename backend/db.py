@@ -92,11 +92,19 @@ def upsert_record(date_str: str, fields: dict[str, Any]) -> None:
 
 
 def get_records(days: int = 30) -> list[dict]:
-    """Return records for the last `days` days, sorted ascending."""
-    cutoff = (datetime.now(timezone.utc).date() - timedelta(days=days - 1)).isoformat()
+    """Return records for the last `days` days relative to latest anchor date, sorted ascending."""
     with get_db() as conn:
+        max_row = conn.execute("SELECT MAX(date) as max_date FROM records").fetchone()
+        if not max_row or not max_row["max_date"]:
+            return []
+        try:
+            anchor = date.fromisoformat(max_row["max_date"])
+        except Exception:
+            return []
+        cutoff = (anchor - timedelta(days=days - 1)).isoformat()
         rows = conn.execute(
-            "SELECT * FROM records WHERE date >= ? ORDER BY date ASC", (cutoff,)
+            "SELECT * FROM records WHERE date >= ? AND date <= ? ORDER BY date ASC",
+            (cutoff, max_row["max_date"]),
         ).fetchall()
     return [dict(r) for r in rows]
 
@@ -106,6 +114,22 @@ def get_all_records() -> list[dict]:
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM records ORDER BY date ASC").fetchall()
     return [dict(r) for r in rows]
+
+
+def delete_demo_records() -> int:
+    """Delete all records where sources == 'demo'. Never touches real data."""
+    with get_db() as conn:
+        cursor = conn.execute("DELETE FROM records WHERE sources = 'demo'")
+        return cursor.rowcount
+
+
+def has_real_records() -> bool:
+    """Return True if any records exist with sources other than 'demo'."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM records WHERE sources != 'demo' OR sources IS NULL"
+        ).fetchone()
+        return bool(row and row["cnt"] > 0)
 
 
 def upsert_setting(key: str, value: str) -> None:
