@@ -12,6 +12,15 @@ import metrics
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def fresh_db(tmp_path, monkeypatch):
+    """Isolate reports tests in a temporary database."""
+    test_db = tmp_path / "test_orbit.db"
+    monkeypatch.setattr(db, "DB_PATH", test_db)
+    db.init_db()
+    yield
+
+
 def test_pdf_report_generation():
     """Verify GET /api/report/pdf returns 200, PDF content type, and valid non-empty PDF bytes."""
     # Ensure there is data

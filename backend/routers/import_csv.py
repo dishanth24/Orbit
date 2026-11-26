@@ -10,6 +10,15 @@ router = APIRouter()
 
 @router.post("/import")
 async def import_csv(files: List[UploadFile] = File(...)):
+    # Rule 2: A real CSV upload must delete all demo rows.
+    # Rule 3: Never delete real uploaded rows.
+    had_only_demo = not db.has_real_records()
+    db.delete_demo_records()
+    if had_only_demo:
+        with db.get_db() as conn:
+            conn.execute("DELETE FROM nudges")
+    db.upsert_setting("is_demo_data", "false")
+
     total_added = 0
     total_read = 0
     all_skipped_rows: list[dict] = []
@@ -23,6 +32,8 @@ async def import_csv(files: List[UploadFile] = File(...)):
         total_read += report.rows_read
         all_skipped_rows.extend(report.skipped_rows)
         source_name = (f.filename or "upload").replace(".csv", "")
+        if source_name == "demo":
+            source_name = "upload_demo"
 
         for row in rows:
             fields = {k: v for k, v in row.items() if k != "date"}
@@ -30,7 +41,7 @@ async def import_csv(files: List[UploadFile] = File(...)):
             with db.get_db() as conn:
                 ex = conn.execute("SELECT sources FROM records WHERE date=?", (row["date"],)).fetchone()
                 if ex and ex["sources"]:
-                    existing_sources = ex["sources"].split(",")
+                    existing_sources = [s for s in ex["sources"].split(",") if s != "demo"]
             if source_name not in existing_sources:
                 existing_sources.append(source_name)
             fields["sources"] = ",".join(existing_sources)

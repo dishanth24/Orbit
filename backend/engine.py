@@ -25,10 +25,10 @@ WATER_GOAL_DEFAULT = 2.5
 _COL_ALIASES: dict[str, list[str]] = {
     "date":    ["date", "day", "timestamp"],
     "steps":   ["steps", "step_count"],
-    "sleep_h": ["sleep", "sleep_hours", "hours_slept", "sleep_duration"],
+    "sleep_h": ["sleep", "sleep_h", "sleep_hours", "hours_slept", "sleep_duration"],
     "rhr":     ["hr", "resting_hr", "rhr", "heart_rate"],
     "mood":    ["mood", "mood_score"],
-    "water_l": ["water", "water_l"],
+    "water_l": ["water", "water_l", "water_litres"],
 }
 
 

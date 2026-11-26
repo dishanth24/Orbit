@@ -116,6 +116,22 @@ def get_all_records() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def delete_demo_records() -> int:
+    """Delete all records where sources == 'demo'. Never touches real data."""
+    with get_db() as conn:
+        cursor = conn.execute("DELETE FROM records WHERE sources = 'demo'")
+        return cursor.rowcount
+
+
+def has_real_records() -> bool:
+    """Return True if any records exist with sources other than 'demo'."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM records WHERE sources != 'demo' OR sources IS NULL"
+        ).fetchone()
+        return bool(row and row["cnt"] > 0)
+
+
 def upsert_setting(key: str, value: str) -> None:
     with get_db() as conn:
         conn.execute(
