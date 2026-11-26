@@ -30,14 +30,17 @@ export default function Settings() {
   const [selectedFiles, setSelectedFiles] = useState([])
   const [uploading, setUploading] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [lastReport, setLastReport] = useState(null)
+  const [showSkippedReasons, setShowSkippedReasons] = useState(false)
   const fileInputRef = useRef(null)
 
   // Fetch initial settings & source counts
   useEffect(() => {
     async function loadSettingsData() {
-      const [settRes, recRes] = await Promise.all([
+      const [settRes, recRes, reportRes] = await Promise.all([
         api.getSettings(),
         api.getRecords(365),
+        api.getLastImportReport(),
       ])
 
       if (settRes.data) {
@@ -46,6 +49,10 @@ export default function Settings() {
         setVoiceEnabled(settRes.data.voice_enabled ?? true)
         setNotifEnabled(settRes.data.notifications_enabled ?? true)
         updateSettings(settRes.data)
+      }
+
+      if (reportRes?.data) {
+        setLastReport(reportRes.data)
       }
 
       if (recRes.data) {
@@ -166,9 +173,31 @@ export default function Settings() {
       return
     }
 
-    const { days_added, days_total, sources: importedSources, skipped_rows } = data
+    const {
+      days_added,
+      days_total,
+      sources: importedSources,
+      skipped_rows = [],
+      skipped_count = 0,
+      rows_read = 0,
+      rows_used = 0,
+      date_range,
+      num_days,
+    } = data
+
+    setLastReport(data)
+
+    const rangeStr =
+      date_range?.start && date_range?.end
+        ? ` (${date_range.start} to ${date_range.end})`
+        : ''
+    const skippedStr =
+      skipped_count > 0
+        ? `, ${skipped_count} row(s) skipped`
+        : ', 0 skipped'
+
     addToast(
-      `Added ${days_added} days from ${selectedFiles.length} file(s) (${skipped_rows || 0} rows skipped). Total: ${days_total} days.`,
+      `Imported: ${rows_used} of ${rows_read} rows used${skippedStr}${rangeStr}. Total ${num_days || days_total} days in timeline.`,
       'success'
     )
     speak(`CSV import complete. Added ${days_added} days.`)
@@ -360,6 +389,70 @@ export default function Settings() {
               </button>
             </div>
           )}
+
+          {/* Last Import Report */}
+          {lastReport && (
+            <div className="import-report-box">
+              <div className="import-report-header">
+                <div className="import-report-title-row">
+                  <CheckCircle size={16} className="text-success" />
+                  <strong className="import-report-title">Last Import Report</strong>
+                </div>
+                {lastReport.date_range?.start && lastReport.date_range?.end && (
+                  <span className="import-report-date-badge">
+                    {lastReport.date_range.start} to {lastReport.date_range.end}
+                  </span>
+                )}
+              </div>
+
+              <div className="import-report-stats-grid">
+                <div className="import-report-stat">
+                  <span className="stat-label">Rows Read</span>
+                  <span className="stat-val">{lastReport.rows_read?.toLocaleString() ?? 0}</span>
+                </div>
+                <div className="import-report-stat">
+                  <span className="stat-label">Rows Used</span>
+                  <span className="stat-val stat-val-highlight">{lastReport.rows_used?.toLocaleString() ?? 0}</span>
+                </div>
+                <div className="import-report-stat">
+                  <span className="stat-label">Days in Timeline</span>
+                  <span className="stat-val">{lastReport.num_days?.toLocaleString() ?? lastReport.days_total ?? 0}</span>
+                </div>
+                <div className="import-report-stat">
+                  <span className="stat-label">Skipped</span>
+                  <span className={`stat-val ${lastReport.skipped_count > 0 ? 'text-warn' : 'text-success'}`}>
+                    {lastReport.skipped_count || (lastReport.skipped_rows ? lastReport.skipped_rows.length : 0)}
+                  </span>
+                </div>
+              </div>
+
+              {lastReport.skipped_rows && lastReport.skipped_rows.length > 0 ? (
+                <div className="import-report-skipped-section">
+                  <button
+                    type="button"
+                    className="skipped-toggle-btn"
+                    onClick={() => setShowSkippedReasons((prev) => !prev)}
+                  >
+                    <span>{showSkippedReasons ? 'Hide' : 'View'} reasons for {lastReport.skipped_rows.length} skipped row(s)</span>
+                    <span className="toggle-arrow">{showSkippedReasons ? '▲' : '▼'}</span>
+                  </button>
+                  {showSkippedReasons && (
+                    <ul className="skipped-reasons-list">
+                      {lastReport.skipped_rows.map((item, idx) => (
+                        <li key={idx} className="skipped-reason-item">
+                          <span className="skipped-row-num">Row {item.row || idx + 1}:</span> {item.reason || JSON.stringify(item)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : (
+                <div className="import-report-clean-note">
+                  ✓ Clean import: all parsed rows merged into your on-device health timeline.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 3. Toggles Section */}
@@ -435,29 +528,9 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* 4. Honest Limits & About */}
-        <div className="card settings-card about-card">
-          <div className="settings-card-header">
-            <ShieldAlert size={20} className="settings-icon" />
-            <div>
-              <h3 className="settings-card-title">About Orbit &amp; Honest Limits</h3>
-              <span className="settings-card-subtitle">Built for wHACKiest 2026 (Know Thyself track)</span>
-            </div>
-          </div>
-
-          <div className="about-text-content">
-            <p>
-              <strong>Orbit</strong> is a privacy-first personal health intelligence app. It merges phone and watch exports into one timeline, computes explainable insights locally, and never sends unapproved data to the cloud.
-            </p>
-            <div className="honest-limits-box">
-              <strong>Honest product limits:</strong>
-              <ul>
-                <li>CSV file imports and demo data only. No direct Bluetooth or live cloud wearable sync.</li>
-                <li>All analysis is deterministic and rule-based.</li>
-                <li><strong>Not medical advice.</strong> This software is intended for informational and personal wellness tracking only.</li>
-              </ul>
-            </div>
-          </div>
+        {/* Small footer line */}
+        <div className="settings-footer-line">
+          <span>Demo data and CSV import only · Not medical advice</span>
         </div>
       </div>
     </div>

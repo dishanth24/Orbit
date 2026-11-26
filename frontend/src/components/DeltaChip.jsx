@@ -1,17 +1,75 @@
 import React from 'react'
 
-export default function DeltaChip({ value, suffix = '%' }) {
-  if (value === null || value === undefined || isNaN(value)) return null
-  const positive = value >= 0
+export default function DeltaChip({
+  value,
+  suffix = '%',
+  metric = 'steps',
+  tooltip = 'vs the previous 7 days',
+  insufficient = false,
+}) {
+  if (insufficient || value === null || value === undefined || isNaN(value)) {
+    return (
+      <span
+        className="delta-chip delta-insufficient"
+        title="Need at least 3 days in both weeks to calculate change"
+        style={{
+          color: 'var(--muted)',
+          background: 'rgba(91, 115, 112, 0.12)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '2px',
+          padding: '2px 8px',
+          borderRadius: 'var(--radius-pill)',
+          fontSize: '0.74rem',
+          fontWeight: 600,
+        }}
+      >
+        Not enough data
+      </span>
+    )
+  }
+
   const abs = Math.abs(value)
-  // Show integer when whole number, otherwise 1 decimal
+  const isHeart = metric === 'heart' || metric === 'rhr'
+
+  // Within 1% show "no change"
+  if (abs < 1) {
+    return (
+      <span
+        className="delta-chip delta-neutral"
+        title={tooltip}
+        style={{
+          color: 'var(--muted)',
+          background: 'rgba(91, 115, 112, 0.12)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 8px',
+          borderRadius: 'var(--radius-pill)',
+          fontSize: '0.76rem',
+          fontWeight: 600,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        <span>●</span> No change
+      </span>
+    )
+  }
+
+  // Meaning: up is good for steps, sleep, mood, water; up is bad for resting heart rate
+  const isUp = value > 0
+  const isGood = isHeart ? !isUp : isUp
+
   const formatted = Number.isInteger(abs) ? abs.toString() : abs.toFixed(1)
+  const displaySuffix = isHeart ? ' bpm' : suffix
+
   return (
     <span
-      className="delta-chip"
+      className={`delta-chip ${isGood ? 'delta-good' : 'delta-bad'}`}
+      title={tooltip}
       style={{
-        color: positive ? 'var(--success)' : 'var(--danger)',
-        background: positive ? 'rgba(46,158,91,0.12)' : 'rgba(224,79,95,0.12)',
+        color: isGood ? 'var(--success)' : 'var(--danger)',
+        background: isGood ? 'rgba(46,158,91,0.12)' : 'rgba(224,79,95,0.12)',
         display: 'inline-flex',
         alignItems: 'center',
         gap: '2px',
@@ -22,7 +80,7 @@ export default function DeltaChip({ value, suffix = '%' }) {
         fontVariantNumeric: 'tabular-nums',
       }}
     >
-      {positive ? '▲' : '▼'} {formatted}{suffix}
+      {isUp ? '▲' : '▼'} {formatted}{displaySuffix}
     </span>
   )
 }

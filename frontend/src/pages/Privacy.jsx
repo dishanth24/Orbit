@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Shield, ShieldCheck, Lock, Send, RefreshCw, Download, Trash2,
-  CheckCircle, Sparkles, ExternalLink, AlertTriangle, FileText
+  CheckCircle, Sparkles, ExternalLink, AlertTriangle, FileText,
+  Table as TableIcon, Loader2
 } from 'lucide-react'
 import { useApi } from '../hooks/useApi'
 import { useAppContext } from '../context/AppContext'
@@ -89,6 +90,19 @@ export default function Privacy() {
     fetchPayload()
     fetchLedger()
   }, [])
+
+  const [downloadingReport, setDownloadingReport] = useState(null)
+
+  const handleDownloadReport = async (type) => {
+    setDownloadingReport(type)
+    const { data, error } = await api.downloadReport(type)
+    setDownloadingReport(null)
+    if (error) {
+      addToast(`Could not generate ${type.toUpperCase()} report: ${error}`, 'error')
+    } else {
+      addToast(`Report saved to your Downloads (${type.toUpperCase()})`, 'success')
+    }
+  }
 
   const handleApproveSummary = async () => {
     if (!allowAi) return
@@ -371,12 +385,44 @@ export default function Privacy() {
         </div>
 
         <div className="danger-actions-row">
-          <button className="btn-secondary" onClick={handleExport}>
-            <Download size={16} />
-            Export my data (JSON)
+          {/* Primary Download Report button with PDF/Excel dropdown */}
+          <div className="report-download-group" style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}>
+            <button
+              className="btn-primary"
+              onClick={() => handleDownloadReport('pdf')}
+              disabled={downloadingReport !== null}
+            >
+              {downloadingReport === 'pdf' ? <Loader2 size={16} className="spin" /> : <FileText size={16} />}
+              Download PDF Report
+            </button>
+
+            <button
+              className="btn-secondary"
+              onClick={() => handleDownloadReport('xlsx')}
+              disabled={downloadingReport !== null}
+            >
+              {downloadingReport === 'xlsx' ? <Loader2 size={16} className="spin" /> : <TableIcon size={16} />}
+              Download Excel Workbook
+            </button>
+          </div>
+
+          {/* Secondary small link for JSON */}
+          <button
+            onClick={handleExport}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--muted)',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              padding: '6px 10px',
+            }}
+          >
+            Raw data (JSON)
           </button>
 
-          <button className="btn-danger" onClick={() => setShowDeleteModal(true)}>
+          <button className="btn-danger" onClick={() => setShowDeleteModal(true)} style={{ marginLeft: 'auto' }}>
             <Trash2 size={16} />
             Delete everything
           </button>

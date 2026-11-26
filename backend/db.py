@@ -92,11 +92,19 @@ def upsert_record(date_str: str, fields: dict[str, Any]) -> None:
 
 
 def get_records(days: int = 30) -> list[dict]:
-    """Return records for the last `days` days, sorted ascending."""
-    cutoff = (datetime.now(timezone.utc).date() - timedelta(days=days - 1)).isoformat()
+    """Return records for the last `days` days relative to latest anchor date, sorted ascending."""
     with get_db() as conn:
+        max_row = conn.execute("SELECT MAX(date) as max_date FROM records").fetchone()
+        if not max_row or not max_row["max_date"]:
+            return []
+        try:
+            anchor = date.fromisoformat(max_row["max_date"])
+        except Exception:
+            return []
+        cutoff = (anchor - timedelta(days=days - 1)).isoformat()
         rows = conn.execute(
-            "SELECT * FROM records WHERE date >= ? ORDER BY date ASC", (cutoff,)
+            "SELECT * FROM records WHERE date >= ? AND date <= ? ORDER BY date ASC",
+            (cutoff, max_row["max_date"]),
         ).fetchall()
     return [dict(r) for r in rows]
 
